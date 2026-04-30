@@ -1,9 +1,10 @@
 const orderModel = require('../model/orderModel');
 
-const createOrder = (req, res, next) => {
+// POST /orders - Create a new order
+const createOrder = async (req, res, next) => {
   try {
     const { customerName, restaurantName, foodItems, totalAmount } = req.body;
-    
+
     // Validation
     if (!customerName || !restaurantName || !foodItems || totalAmount === undefined) {
       return res.status(400).json({ error: 'Missing required fields: customerName, restaurantName, foodItems, totalAmount', status: 400 });
@@ -12,26 +13,28 @@ const createOrder = (req, res, next) => {
       return res.status(400).json({ error: 'foodItems must be an array', status: 400 });
     }
 
-    const newOrder = orderModel.createOrder(req.body);
+    const newOrder = await orderModel.createOrder(req.body);
     res.status(201).json(newOrder);
   } catch (error) {
     next(error);
   }
 };
 
-const getOrders = (req, res, next) => {
+// GET /orders - Get all orders
+const getOrders = async (req, res, next) => {
   try {
-    const orders = orderModel.getAllOrders();
+    const orders = await orderModel.getAllOrders();
     res.status(200).json(orders);
   } catch (error) {
     next(error);
   }
 };
 
-const getOrderById = (req, res, next) => {
+// GET /orders/:id - Get order by ID
+const getOrderById = async (req, res, next) => {
   try {
     const orderId = req.params.id;
-    const order = orderModel.getOrderById(orderId);
+    const order = await orderModel.getOrderById(orderId);
     if (!order) {
       return res.status(404).json({ error: 'Order not found', status: 404 });
     }
@@ -41,35 +44,37 @@ const getOrderById = (req, res, next) => {
   }
 };
 
-const updateOrderStatus = (req, res, next) => {
+// PUT /orders/:id/status - Update delivery status
+const updateOrderStatus = async (req, res, next) => {
   try {
     const orderId = req.params.id;
     const { status } = req.body;
-    
+
     if (!status) {
       return res.status(400).json({ error: 'Missing status field', status: 400 });
     }
 
-    const updatedOrder = orderModel.updateOrderStatus(orderId, status);
+    const updatedOrder = await orderModel.updateOrderStatus(orderId, status);
     if (!updatedOrder) {
       return res.status(404).json({ error: 'Order not found', status: 404 });
     }
-    
+
     res.status(200).json(updatedOrder);
   } catch (error) {
     next(error);
   }
 };
 
-const cancelOrder = (req, res, next) => {
+// DELETE /orders/:id - Cancel an order
+const cancelOrder = async (req, res, next) => {
   try {
     const orderId = req.params.id;
-    const cancelledOrder = orderModel.cancelOrder(orderId);
-    
+    const cancelledOrder = await orderModel.cancelOrder(orderId);
+
     if (!cancelledOrder) {
       return res.status(404).json({ error: 'Order not found', status: 404 });
     }
-    
+
     res.status(200).json(cancelledOrder);
   } catch (error) {
     next(error);

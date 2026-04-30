@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Food Delivery API Tester</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface-hover: #222632;
+      --border: #2a2e3a;
+      --text: #e4e6eb;
+      --text-muted: #8b8fa3;
+      --accent: #6c5ce7;
+      --accent-glow: rgba(108, 92, 231, 0.25);
+      --green: #00b894;
+      --red: #e17055;
+      --orange: #fdcb6e;
+      --blue: #74b9ff;
+      --radius: 12px;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 0;
+    }
+
+    /* ── Header ── */
+    header {
+      background: linear-gradient(135deg, #6c5ce7 0%, #a29bfe 100%);
+      padding: 32px 0;
+      text-align: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 4px 30px rgba(108, 92, 231, 0.3);
+    }
+    header h1 { font-size: 1.6rem; font-weight: 700; letter-spacing: -0.5px; color: #fff; }
+    header p { font-size: 0.85rem; color: rgba(255,255,255,0.75); margin-top: 4px; }
+
+    /* ── Layout ── */
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 28px 20px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    @media (max-width: 768px) { .container { grid-template-columns: 1fr; } }
+
+    /* ── Cards ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 22px;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .card:hover {
+      border-color: var(--accent);
+      box-shadow: 0 0 20px var(--accent-glow);
+    }
+    .card-title {
+      font-size: 0.95rem;
+      font-weight: 600;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .method-badge {
+      font-size: 0.65rem;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .method-badge.post   { background: rgba(0,184,148,0.15); color: var(--green); }
+    .method-badge.get    { background: rgba(116,185,255,0.15); color: var(--blue); }
+    .method-badge.put    { background: rgba(253,203,110,0.15); color: var(--orange); }
+    .method-badge.delete { background: rgba(225,112,85,0.15); color: var(--red); }
+
+    /* ── Form Elements ── */
+    label {
+      display: block;
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+      margin-top: 10px;
+    }
+    input, select {
+      width: 100%;
+      padding: 9px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+      font-family: inherit;
+      font-size: 0.85rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    input:focus, select:focus { border-color: var(--accent); }
+    input::placeholder { color: var(--text-muted); opacity: 0.5; }
+
+    button.send-btn {
+      margin-top: 16px;
+      width: 100%;
+      padding: 10px;
+      border: none;
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.1s, opacity 0.2s;
+      color: #fff;
+    }
+    button.send-btn:active { transform: scale(0.98); }
+    button.send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-post   { background: var(--green); }
+    .btn-get    { background: var(--blue); }
+    .btn-put    { background: var(--orange); color: #333 !important; }
+    .btn-delete { background: var(--red); }
+
+    /* ── Response Panel (spans full width) ── */
+    .response-section {
+      grid-column: 1 / -1;
+    }
+    .response-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .response-header h2 { font-size: 0.95rem; font-weight: 600; }
+    .status-chip {
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 20px;
+    }
+    .status-chip.ok      { background: rgba(0,184,148,0.15); color: var(--green); }
+    .status-chip.error   { background: rgba(225,112,85,0.15); color: var(--red); }
+
+    pre.response-body {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      font-size: 0.8rem;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+      max-height: 340px;
+      overflow-y: auto;
+      line-height: 1.6;
+      color: var(--text-muted);
+      transition: color 0.3s;
+    }
+    pre.response-body.has-data { color: var(--text); }
+
+    /* ── Animations ── */
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .card { animation: fadeIn 0.35s ease both; }
+    .card:nth-child(2) { animation-delay: 0.05s; }
+    .card:nth-child(3) { animation-delay: 0.10s; }
+    .card:nth-child(4) { animation-delay: 0.15s; }
+    .card:nth-child(5) { animation-delay: 0.20s; }
+
+    /* ── Scrollbar ── */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>🍔 Food Delivery API Tester</h1>
+    <p>Test all REST endpoints from one page</p>
+  </header>
+
+  <div class="container">
+
+    <!-- ─── 1. Create Order ─── -->
+    <div class="card">
+      <div class="card-title">
+        <span class="method-badge post">POST</span> /orders — Create Order
+      </div>
+      <label>Customer Name</label>
+      <input type="text" id="createName" placeholder="e.g. John Doe" />
+      <label>Restaurant Name</label>
+      <input type="text" id="createRestaurant" placeholder="e.g. Pizza Hut" />
+      <label>Food Items (comma separated)</label>
+      <input type="text" id="createItems" placeholder="e.g. Burger, Fries, Coke" />
+      <label>Total Amount</label>
+      <input type="number" id="createAmount" placeholder="e.g. 25.50" step="0.01" />
+      <button class="send-btn btn-post" onclick="createOrder()">Create Order</button>
+    </div>
+
+    <!-- ─── 2. Get All Orders ─── -->
+    <div class="card">
+      <div class="card-title">
+        <span class="method-badge get">GET</span> /orders — Get All Orders
+      </div>
+      <p style="font-size:0.8rem;color:var(--text-muted);margin-bottom:8px;">Fetch every order currently stored in the system.</p>
+      <button class="send-btn btn-get" onclick="getAllOrders()">Fetch All Orders</button>
+    </div>
+
+    <!-- ─── 3. Get Order By ID ─── -->
+    <div class="card">
+      <div class="card-title">
+        <span class="method-badge get">GET</span> /orders/:id — Get Order
+      </div>
+      <label>Order ID</label>
+      <input type="text" id="getOrderId" placeholder="e.g. ORD1" />
+      <button class="send-btn btn-get" onclick="getOrderById()">Fetch Order</button>
+    </div>
+
+    <!-- ─── 4. Update Status ─── -->
+    <div class="card">
+      <div class="card-title">
+        <span class="method-badge put">PUT</span> /orders/:id/status — Update Status
+      </div>
+      <label>Order ID</label>
+      <input type="text" id="updateOrderId" placeholder="e.g. ORD1" />
+      <label>New Status</label>
+      <select id="updateStatus">
+        <option value="Placed">Placed</option>
+        <option value="Preparing">Preparing</option>
+        <option value="Out for Delivery">Out for Delivery</option>
+        <option value="Delivered">Delivered</option>
+        <option value="Cancelled">Cancelled</option>
+      </select>
+      <button class="send-btn btn-put" onclick="updateStatus()">Update Status</button>
+    </div>
+
+    <!-- ─── 5. Cancel Order ─── -->
+    <div class="card">
+      <div class="card-title">
+        <span class="method-badge delete">DELETE</span> /orders/:id — Cancel Order
+      </div>
+      <label>Order ID</label>
+      <input type="text" id="cancelOrderId" placeholder="e.g. ORD1" />
+      <button class="send-btn btn-delete" onclick="cancelOrder()">Cancel Order</button>
+    </div>
+
+    <!-- ─── Response Panel ─── -->
+    <div class="card response-section">
+      <div class="response-header">
+        <h2>Response</h2>
+        <span class="status-chip" id="statusChip" style="display:none;"></span>
+      </div>
+      <pre class="response-body" id="responseBody">Send a request to see the response here…</pre>
+    </div>
+
+  </div>
+
+  <script>
+    const BASE = window.location.origin;
+
+    // ── Helpers ──
+    function showResponse(status, data) {
+      const chip = document.getElementById('statusChip');
+      const body = document.getElementById('responseBody');
+
+      chip.style.display = 'inline-block';
+      chip.textContent = status;
+      chip.className = 'status-chip ' + (status < 400 ? 'ok' : 'error');
+
+      body.textContent = JSON.stringify(data, null, 2);
+      body.classList.add('has-data');
+    }
+
+    async function apiCall(method, path, bodyObj) {
+      const opts = {
+        method,
+        headers: { 'Content-Type': 'application/json' }
+      };
+      if (bodyObj) opts.body = JSON.stringify(bodyObj);
+
+      try {
+        const res = await fetch(BASE + path, opts);
+        const json = await res.json();
+        showResponse(res.status, json);
+      } catch (err) {
+        showResponse(0, { error: err.message });
+      }
+    }
+
+    // ── Endpoint Functions ──
+    function createOrder() {
+      const customerName   = document.getElementById('createName').value.trim();
+      const restaurantName = document.getElementById('createRestaurant').value.trim();
+      const foodItems      = document.getElementById('createItems').value.split(',').map(s => s.trim()).filter(Boolean);
+      const totalAmount    = parseFloat(document.getElementById('createAmount').value);
+
+      apiCall('POST', '/orders', { customerName, restaurantName, foodItems, totalAmount });
+    }
+
+    function getAllOrders() {
+      apiCall('GET', '/orders');
+    }
+
+    function getOrderById() {
+      const id = document.getElementById('getOrderId').value.trim();
+      if (!id) return showResponse(400, { error: 'Enter an Order ID' });
+      apiCall('GET', '/orders/' + id);
+    }
+
+    function updateStatus() {
+      const id     = document.getElementById('updateOrderId').value.trim();
+      const status = document.getElementById('updateStatus').value;
+      if (!id) return showResponse(400, { error: 'Enter an Order ID' });
+      apiCall('PUT', '/orders/' + id + '/status', { status });
+    }
+
+    function cancelOrder() {
+      const id = document.getElementById('cancelOrderId').value.trim();
+      if (!id) return showResponse(400, { error: 'Enter an Order ID' });
+      apiCall('DELETE', '/orders/' + id);
+    }
+  </script>
+</body>
+</html>

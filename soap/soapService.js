@@ -1,13 +1,14 @@
 const orderModel = require('../model/orderModel');
 
+// SOAP service definition — maps to the WSDL operations
 const soapService = {
   OrderService: {
     OrderPort: {
-      placeOrder: function(args, cb, headers, req) {
+      // Place a new order
+      placeOrder: async function(args) {
         try {
-          // Convert comma-separated foodItems to array
-          const foodItems = args.foodItems ? args.foodItems.split(',') : [];
-          
+          const foodItems = args.foodItems ? args.foodItems.split(',').map(s => s.trim()) : [];
+
           const orderData = {
             customerName: args.customerName,
             restaurantName: args.restaurantName,
@@ -15,7 +16,7 @@ const soapService = {
             totalAmount: parseFloat(args.totalAmount)
           };
 
-          const newOrder = orderModel.createOrder(orderData);
+          const newOrder = await orderModel.createOrder(orderData);
           return {
             orderId: newOrder.orderId,
             deliveryStatus: newOrder.deliveryStatus
@@ -23,18 +24,16 @@ const soapService = {
         } catch (error) {
           throw {
             Fault: {
-              Code: {
-                Value: 'soap:Client',
-                Subcode: { value: 'rpc:BadArguments' }
-              },
+              Code: { Value: 'soap:Client', Subcode: { value: 'rpc:BadArguments' } },
               Reason: { Text: error.message }
             }
           };
         }
       },
 
-      getOrderDetails: function(args) {
-        const order = orderModel.getOrderById(args.orderId);
+      // Get details of a specific order
+      getOrderDetails: async function(args) {
+        const order = await orderModel.getOrderById(args.orderId);
         if (!order) {
           throw {
             Fault: {
@@ -53,9 +52,10 @@ const soapService = {
         };
       },
 
-      updateDeliveryStatus: function(args) {
+      // Update delivery status
+      updateDeliveryStatus: async function(args) {
         try {
-          const updatedOrder = orderModel.updateOrderStatus(args.orderId, args.status);
+          const updatedOrder = await orderModel.updateOrderStatus(args.orderId, args.status);
           if (!updatedOrder) {
             throw new Error('Order not found');
           }
@@ -73,8 +73,9 @@ const soapService = {
         }
       },
 
-      cancelOrder: function(args) {
-        const cancelledOrder = orderModel.cancelOrder(args.orderId);
+      // Cancel an order
+      cancelOrder: async function(args) {
+        const cancelledOrder = await orderModel.cancelOrder(args.orderId);
         if (!cancelledOrder) {
           throw {
             Fault: {

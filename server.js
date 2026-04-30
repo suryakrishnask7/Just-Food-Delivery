@@ -45,7 +45,7 @@ mongoose.connect(MONGODB_URI)
       const wsdlPath = path.join(__dirname, 'soap', 'service.wsdl');
       const wsdlXML = fs.readFileSync(wsdlPath, 'utf8');
 
-      soap.listen(server, '/wsdl', soapService, wsdlXML, function() {
+      soap.listen(server, '/wsdl', soapService, wsdlXML, function () {
         console.log('SOAP service listening on /wsdl');
       });
     });

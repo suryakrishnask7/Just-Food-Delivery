@@ -22,6 +22,57 @@
   --radius-lg: 24px;
 }
 
+body.light-mode {
+  --bg-color: #f8fafc;
+  --surface-color: rgba(255, 255, 255, 0.7);
+  --border-color: rgba(0, 0, 0, 0.1);
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --brand-glow: rgba(99, 102, 241, 0.2);
+}
+
+body.light-mode .glass-input {
+  background: rgba(255, 255, 255, 0.5);
+  color: var(--text-primary);
+}
+
+body.light-mode .response-panel {
+  background: #f1f5f9;
+  border-color: #e2e8f0;
+}
+
+body.light-mode .response-header {
+  background: #e2e8f0;
+}
+
+body.light-mode .response-header h4 {
+  color: #334155;
+}
+
+body.light-mode .response-body {
+  color: #3b82f6;
+}
+
+body.light-mode .navbar {
+  background: rgba(255, 255, 255, 0.85);
+}
+
+.theme-toggle {
+  background: none;
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.85rem;
+  transition: all 0.3s;
+}
+
+.theme-toggle:hover {
+  background: var(--surface-color);
+}
+
 * {
   box-sizing: border-box;
   margin: 0;

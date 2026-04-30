@@ -1,4 +1,4 @@
-# 🚀 Antigravity Food Delivery API
+# 🚀 Just Food Delivery API
 
 A complete backend system for online food delivery featuring **interoperability between REST and SOAP protocols**. Both interfaces share the same **MongoDB Atlas** database, meaning an order created via REST can instantly be retrieved or modified via SOAP, and vice-versa.
 

@@ -3,16 +3,17 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>REST Tester | Antigravity</title>
+  <title>REST Tester | Just Food Delivery API</title>
   <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
   <nav class="navbar">
-    <a href="/" class="logo">🚀 Antigravity Delivery</a>
+    <a href="/" class="logo">🚀 Just Food Delivery API</a>
     <div class="nav-links">
       <a href="/" >Home</a>
       <a href="/rest.html" class="active">REST API</a>
       <a href="/soap.html">SOAP API</a>
+      <button class="theme-toggle" onclick="toggleTheme()">☀️ Light Mode</button>
     </div>
   </nav>
 
@@ -150,6 +151,14 @@
     function getOrderById() { apiCall('GET', '/orders/' + document.getElementById('getOrderId').value.trim()); }
     function updateStatus() { apiCall('PUT', '/orders/' + document.getElementById('updateOrderId').value.trim() + '/status', { status: document.getElementById('updateStatus').value }); }
     function cancelOrder() { apiCall('DELETE', '/orders/' + document.getElementById('cancelOrderId').value.trim()); }
+
+    function toggleTheme() {
+      document.body.classList.toggle('light-mode');
+      const isLight = document.body.classList.contains('light-mode');
+      localStorage.setItem('theme', isLight ? 'light' : 'dark');
+      document.querySelector('.theme-toggle').textContent = isLight ? '🌙 Dark Mode' : '☀️ Light Mode';
+    }
+    if (localStorage.getItem('theme') === 'light') toggleTheme();
   </script>
 </body>
 </html>

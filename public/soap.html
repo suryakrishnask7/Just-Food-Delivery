@@ -3,16 +3,17 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SOAP Tester | Antigravity</title>
+  <title>SOAP Tester | Just Food Delivery API</title>
   <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
   <nav class="navbar">
-    <a href="/" class="logo">🚀 Antigravity Delivery</a>
+    <a href="/" class="logo">🚀 Just Food Delivery API</a>
     <div class="nav-links">
       <a href="/">Home</a>
       <a href="/rest.html">REST API</a>
       <a href="/soap.html" class="active">SOAP API</a>
+      <button class="theme-toggle" onclick="toggleTheme()">☀️ Light Mode</button>
     </div>
   </nav>
 
@@ -228,6 +229,14 @@
         });
         return formatted;
     }
+
+    function toggleTheme() {
+      document.body.classList.toggle('light-mode');
+      const isLight = document.body.classList.contains('light-mode');
+      localStorage.setItem('theme', isLight ? 'light' : 'dark');
+      document.querySelector('.theme-toggle').textContent = isLight ? '🌙 Dark Mode' : '☀️ Light Mode';
+    }
+    if (localStorage.getItem('theme') === 'light') toggleTheme();
   </script>
 </body>
 </html>

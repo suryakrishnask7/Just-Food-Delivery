@@ -1,78 +1,69 @@
-# Online Food Delivery System
+# 🚀 Antigravity Food Delivery API
 
-A complete backend for an online food delivery system using Node.js, Express.js, and SOAP. The application supports BOTH REST and SOAP APIs sharing an in-memory data store. Ready to be deployed to Render!
-
-## Getting Started
-
-1. **Install dependencies:**
-   ```bash
-   npm install
-   ```
-
-2. **Run the application:**
-   ```bash
-   npm start
-   ```
-
-The application will be accessible at `http://localhost:8000`. If you deploy to Render, it will bind to the `PORT` environment variable provided by Render.
+A complete backend system for online food delivery featuring **interoperability between REST and SOAP protocols**. Both interfaces share the same **MongoDB Atlas** database, meaning an order created via REST can instantly be retrieved or modified via SOAP, and vice-versa.
 
 ---
 
-## Testing the REST APIs (via Postman)
+## 🌐 1. Live Browser Testing (Recommended)
 
-### 1. Create a New Order (POST /orders)
+The easiest way to test the API is using the built-in premium testing interfaces. No external tools required!
 
-**Request URL:** `POST http://localhost:8000/orders`
-**Request Body (JSON):**
+- **Landing Dashboard**: [https://ecufs-js.onrender.com](https://ecufs-js.onrender.com)
+- **REST Tester**: [https://ecufs-js.onrender.com/rest.html](https://ecufs-js.onrender.com/rest.html)
+- **SOAP Tester**: [https://ecufs-js.onrender.com/soap.html](https://ecufs-js.onrender.com/soap.html) *(Native XML fetching built in JavaScript!)*
+
+---
+
+## 🔌 2. REST API Endpoints (For Postman / cURL)
+
+**Base URL:** `https://ecufs-js.onrender.com`
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `POST` | `/orders` | Create a new food order. |
+| `GET` | `/orders` | Retrieve all orders. |
+| `GET` | `/orders/:id` | Retrieve a specific order by ID (e.g., `ORD1`). |
+| `PUT` | `/orders/:id/status` | Update the delivery status of an order. |
+| `DELETE` | `/orders/:id` | Cancel an order. |
+
+### Sample REST Requests
+
+**Create Order (`POST /orders`)**
 ```json
 {
-  "customerName": "John Doe",
-  "restaurantName": "Pizza Hut",
-  "foodItems": ["Margherita Pizza", "Garlic Bread"],
-  "totalAmount": 25.50
+  "customerName": "Alice",
+  "restaurantName": "Domino's",
+  "foodItems": ["Pepperoni Pizza", "Garlic Bread"],
+  "totalAmount": 22.50
 }
 ```
-**Error Simulation (402 Payment Failure):** Set `"totalAmount": -10`
-**Error Simulation (503 Restaurant Unavailable):** Set `"restaurantName": "unavailable"`
+*Tip: Set `totalAmount` to `-1` to test a `402 Payment Failure`, or `restaurantName` to `unavailable` to test a `503` error.*
 
-### 2. Get All Orders (GET /orders)
-
-**Request URL:** `GET http://localhost:8000/orders`
-
-### 3. Get Specific Order (GET /orders/:id)
-
-**Request URL:** `GET http://localhost:8000/orders/ORD1`
-
-### 4. Update Delivery Status (PUT /orders/:id/status)
-
-**Request URL:** `PUT http://localhost:8000/orders/ORD1/status`
-**Request Body (JSON):**
+**Update Status (`PUT /orders/ORD1/status`)**
 ```json
 {
   "status": "Out for Delivery"
 }
 ```
-*(Allowed statuses: Placed, Preparing, Out for Delivery, Delivered, Cancelled)*
-
-### 5. Cancel Order (DELETE /orders/:id)
-
-**Request URL:** `DELETE http://localhost:8000/orders/ORD1`
+*Allowed Statuses: `Placed`, `Preparing`, `Out for Delivery`, `Delivered`, `Cancelled`.*
 
 ---
 
-## Testing the SOAP APIs (via SoapUI)
+## ⚙️ 3. SOAP API Endpoints (For SoapUI)
 
-**WSDL Endpoint:** `http://localhost:8000/wsdl?wsdl`
+**WSDL Endpoint:** `https://ecufs-js.onrender.com/wsdl?wsdl`
 
-### 1. Place Order
+Import the WSDL link above into your SOAP client (like SoapUI) to automatically generate the four operations.
 
-**Request:**
+### Sample SOAP XML Requests
+
+**Place Order (`placeOrder`)**
 ```xml
 <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ord="http://www.examples.com/wsdl/OrderService.wsdl">
    <soapenv:Header/>
    <soapenv:Body>
       <ord:placeOrder>
-         <customerName>Jane Doe</customerName>
+         <customerName>Bob</customerName>
          <restaurantName>Burger King</restaurantName>
          <foodItems>Whopper,Fries</foodItems>
          <totalAmount>15.99</totalAmount>
@@ -81,9 +72,7 @@ The application will be accessible at `http://localhost:8000`. If you deploy to 
 </soapenv:Envelope>
 ```
 
-### 2. Get Order Details
-
-**Request:**
+**Get Order Details (`getOrderDetails`)**
 ```xml
 <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ord="http://www.examples.com/wsdl/OrderService.wsdl">
    <soapenv:Header/>
@@ -95,9 +84,7 @@ The application will be accessible at `http://localhost:8000`. If you deploy to 
 </soapenv:Envelope>
 ```
 
-### 3. Update Delivery Status
-
-**Request:**
+**Update Delivery Status (`updateDeliveryStatus`)**
 ```xml
 <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ord="http://www.examples.com/wsdl/OrderService.wsdl">
    <soapenv:Header/>
@@ -110,9 +97,7 @@ The application will be accessible at `http://localhost:8000`. If you deploy to 
 </soapenv:Envelope>
 ```
 
-### 4. Cancel Order
-
-**Request:**
+**Cancel Order (`cancelOrder`)**
 ```xml
 <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ord="http://www.examples.com/wsdl/OrderService.wsdl">
    <soapenv:Header/>
@@ -123,3 +108,12 @@ The application will be accessible at `http://localhost:8000`. If you deploy to 
    </soapenv:Body>
 </soapenv:Envelope>
 ```
+
+---
+
+## 🛠️ Tech Stack
+
+- **Node.js + Express**: High performance server and REST JSON endpoints.
+- **Node-SOAP**: Native WSDL interpretation and SOAP endpoint listening.
+- **MongoDB Atlas**: Persistent cloud NoSQL database bridging the state between REST and SOAP operations.
+- **HTML/CSS/JS**: A custom-built, premium glassmorphism multi-page UI capable of sending native JSON and XML requests without third-party frameworks.

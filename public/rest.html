@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>REST Tester | Antigravity</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <nav class="navbar">
+    <a href="/" class="logo">🚀 Antigravity Delivery</a>
+    <div class="nav-links">
+      <a href="/" >Home</a>
+      <a href="/rest.html" class="active">REST API</a>
+      <a href="/soap.html">SOAP API</a>
+    </div>
+  </nav>
+
+  <div class="container">
+    <div style="margin-bottom: 40px;">
+      <h2 style="font-size: 2.5rem; margin-bottom: 10px;">REST <span class="gradient-text">Interface</span></h2>
+      <p style="color: var(--text-secondary);">Direct JSON communication with the Express.js endpoints.</p>
+    </div>
+
+    <div class="api-grid">
+      <!-- Create Order -->
+      <div class="glass-card">
+        <div class="card-header">
+          <span class="method post">POST</span> <h3>/orders</h3>
+        </div>
+        <div class="form-group">
+          <label>Customer Name</label>
+          <input type="text" id="createName" class="glass-input" placeholder="e.g. John Doe" />
+        </div>
+        <div class="form-group">
+          <label>Restaurant Name</label>
+          <input type="text" id="createRestaurant" class="glass-input" placeholder="e.g. Pizza Hut" />
+        </div>
+        <div class="form-group">
+          <label>Food Items (comma separated)</label>
+          <input type="text" id="createItems" class="glass-input" placeholder="e.g. Burger, Fries" />
+        </div>
+        <div class="form-group">
+          <label>Total Amount</label>
+          <input type="number" id="createAmount" class="glass-input" placeholder="e.g. 25.50" step="0.01" />
+        </div>
+        <button class="btn btn-primary" onclick="createOrder()">Execute POST</button>
+      </div>
+
+      <!-- Get All -->
+      <div class="glass-card">
+        <div class="card-header">
+          <span class="method get">GET</span> <h3>/orders</h3>
+        </div>
+        <p style="color:var(--text-secondary); font-size:0.9rem; margin-bottom: 24px;">Retrieve the complete array of orders currently persisted in the MongoDB Atlas cluster.</p>
+        <button class="btn btn-primary" onclick="getAllOrders()">Execute GET</button>
+      </div>
+
+      <!-- Get Specific -->
+      <div class="glass-card">
+        <div class="card-header">
+          <span class="method get">GET</span> <h3>/orders/:id</h3>
+        </div>
+        <div class="form-group">
+          <label>Order ID</label>
+          <input type="text" id="getOrderId" class="glass-input" placeholder="e.g. ORD1" />
+        </div>
+        <button class="btn btn-primary" onclick="getOrderById()">Execute GET</button>
+      </div>
+
+      <!-- Update Status -->
+      <div class="glass-card">
+        <div class="card-header">
+          <span class="method put">PUT</span> <h3>/orders/:id/status</h3>
+        </div>
+        <div class="form-group">
+          <label>Order ID</label>
+          <input type="text" id="updateOrderId" class="glass-input" placeholder="e.g. ORD1" />
+        </div>
+        <div class="form-group">
+          <label>New Status</label>
+          <select id="updateStatus" class="glass-input" style="background-color: var(--bg-color);">
+            <option value="Placed">Placed</option>
+            <option value="Preparing">Preparing</option>
+            <option value="Out for Delivery">Out for Delivery</option>
+            <option value="Delivered">Delivered</option>
+            <option value="Cancelled">Cancelled</option>
+          </select>
+        </div>
+        <button class="btn btn-primary" onclick="updateStatus()">Execute PUT</button>
+      </div>
+
+      <!-- Cancel Order -->
+      <div class="glass-card">
+        <div class="card-header">
+          <span class="method delete">DELETE</span> <h3>/orders/:id</h3>
+        </div>
+        <div class="form-group">
+          <label>Order ID</label>
+          <input type="text" id="cancelOrderId" class="glass-input" placeholder="e.g. ORD1" />
+        </div>
+        <button class="btn btn-primary" onclick="cancelOrder()">Execute DELETE</button>
+      </div>
+
+      <!-- Response Area -->
+      <div class="response-panel">
+        <div class="response-header">
+          <h4>JSON Response Payload</h4>
+          <span class="status-badge" id="statusBadge">200 OK</span>
+        </div>
+        <pre class="response-body" id="responseBody">Awaiting execution...</pre>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const BASE = window.location.origin;
+
+    function renderResponse(status, data) {
+      const badge = document.getElementById('statusBadge');
+      const body = document.getElementById('responseBody');
+      badge.style.display = 'block';
+      badge.textContent = `HTTP ${status}`;
+      badge.className = 'status-badge ' + (status >= 200 && status < 300 ? 'ok' : 'error');
+      body.textContent = JSON.stringify(data, null, 2);
+    }
+
+    async function apiCall(method, path, bodyObj) {
+      const opts = { method, headers: { 'Content-Type': 'application/json' } };
+      if (bodyObj) opts.body = JSON.stringify(bodyObj);
+      try {
+        const res = await fetch(BASE + path, opts);
+        const json = await res.json();
+        renderResponse(res.status, json);
+      } catch (err) {
+        renderResponse(0, { error: err.message });
+      }
+    }
+
+    function createOrder() {
+      apiCall('POST', '/orders', {
+        customerName: document.getElementById('createName').value.trim(),
+        restaurantName: document.getElementById('createRestaurant').value.trim(),
+        foodItems: document.getElementById('createItems').value.split(',').map(s=>s.trim()).filter(Boolean),
+        totalAmount: parseFloat(document.getElementById('createAmount').value)
+      });
+    }
+
+    function getAllOrders() { apiCall('GET', '/orders'); }
+    function getOrderById() { apiCall('GET', '/orders/' + document.getElementById('getOrderId').value.trim()); }
+    function updateStatus() { apiCall('PUT', '/orders/' + document.getElementById('updateOrderId').value.trim() + '/status', { status: document.getElementById('updateStatus').value }); }
+    function cancelOrder() { apiCall('DELETE', '/orders/' + document.getElementById('cancelOrderId').value.trim()); }
+  </script>
+</body>
+</html>

@@ -94,14 +94,10 @@ async function updateOrderStatus(id, status) {
   return order; // null if not found
 }
 
-// Cancel an order
+// Cancel an order (Completely remove from DB)
 async function cancelOrder(id) {
-  const order = await Order.findOneAndUpdate(
-    { orderId: id },
-    { deliveryStatus: 'Cancelled' },
-    { new: true }
-  );
-  return order; // null if not found
+  const order = await Order.findOneAndDelete({ orderId: id });
+  return order; // returns the deleted document or null if not found
 }
 
 module.exports = {

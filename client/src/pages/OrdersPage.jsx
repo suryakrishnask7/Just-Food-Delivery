@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 
 const STATUS_OPTIONS = ['Placed', 'Preparing', 'Out for Delivery', 'Delivered', 'Cancelled']
 
@@ -10,27 +10,40 @@ const STATUS_META = {
   'Cancelled':        { className: 'cancelled', emoji: '❌' },
 }
 
-function OrdersPage() {
-  const [orders, setOrders] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
+const TERMINAL = new Set(['Delivered', 'Cancelled'])
 
-  // Per-card state: which card is updating, and which dropdown is open
-  const [updatingId, setUpdatingId] = useState(null)
-  const [deletingId, setDeletingId] = useState(null)
+// Collapse repeated food items into "Burger ×2" style
+function collapsePills(items) {
+  const counts = {}
+  items.forEach(i => { counts[i] = (counts[i] || 0) + 1 })
+  return Object.entries(counts).map(([name, qty]) => ({ name, qty }))
+}
+
+// Restaurant emojis map (synced with PlaceOrderPage)
+const RESTAURANT_EMOJI = {
+  'Burger Joint':     '🍔',
+  'Pizza Haven':      '🍕',
+  'Sushi World':      '🍣',
+  'Biryani Palace':   '🍛',
+}
+
+function OrdersPage() {
+  const [orders, setOrders]           = useState([])
+  const [loading, setLoading]         = useState(true)
+  const [error, setError]             = useState('')
+  const [activeRestaurant, setActiveRestaurant] = useState('All')
+
+  // Per-card UI state
+  const [updatingId, setUpdatingId]   = useState(null)
+  const [deletingId, setDeletingId]   = useState(null)
   const [dropdownOpen, setDropdownOpen] = useState(null)
 
-  // Single order lookup
-  const [lookupId, setLookupId] = useState('')
-  const [lookedUp, setLookedUp] = useState(null)
-  const [lookupLoading, setLookupLoading] = useState(false)
-  const [lookupError, setLookupError] = useState('')
-
+  // ── Fetch ──
   const fetchOrders = useCallback(async () => {
     setLoading(true)
     setError('')
     try {
-      const res = await fetch('/orders')
+      const res  = await fetch('/orders')
       const data = await res.json()
       if (!res.ok) { setError(data.error || 'Failed to load orders'); return }
       setOrders(data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)))
@@ -43,7 +56,37 @@ function OrdersPage() {
 
   useEffect(() => { fetchOrders() }, [fetchOrders])
 
-  // Update status
+  // ── Close dropdown when clicking outside ──
+  useEffect(() => {
+    const close = () => setDropdownOpen(null)
+    window.addEventListener('click', close)
+    return () => window.removeEventListener('click', close)
+  }, [])
+
+  // ── Derived: unique restaurants found in orders ──
+  const restaurants = useMemo(() => {
+    const names = [...new Set(orders.map(o => o.restaurantName))]
+    return names.sort()
+  }, [orders])
+
+  // ── Stats per restaurant ──
+  const restaurantStats = useMemo(() => {
+    const stats = {}
+    orders.forEach(o => {
+      if (!stats[o.restaurantName]) stats[o.restaurantName] = { total: 0, active: 0 }
+      stats[o.restaurantName].total++
+      if (!TERMINAL.has(o.deliveryStatus)) stats[o.restaurantName].active++
+    })
+    return stats
+  }, [orders])
+
+  // ── Filtered orders ──
+  const filtered = useMemo(() => {
+    if (activeRestaurant === 'All') return orders
+    return orders.filter(o => o.restaurantName === activeRestaurant)
+  }, [orders, activeRestaurant])
+
+  // ── Actions ──
   const handleUpdateStatus = async (orderId, newStatus) => {
     setUpdatingId(orderId)
     setDropdownOpen(null)
@@ -54,16 +97,17 @@ function OrdersPage() {
         body: JSON.stringify({ status: newStatus }),
       })
       if (res.ok) {
-        setOrders(prev => prev.map(o => o.orderId === orderId ? { ...o, deliveryStatus: newStatus } : o))
+        setOrders(prev => prev.map(o =>
+          o.orderId === orderId ? { ...o, deliveryStatus: newStatus } : o
+        ))
       }
     } finally {
       setUpdatingId(null)
     }
   }
 
-  // Delete order
   const handleDelete = async (orderId) => {
-    if (!window.confirm(`Cancel and delete order ${orderId}?`)) return
+    if (!window.confirm(`Delete order ${orderId}?`)) return
     setDeletingId(orderId)
     try {
       const res = await fetch(`/orders/${orderId}`, { method: 'DELETE' })
@@ -73,79 +117,74 @@ function OrdersPage() {
     }
   }
 
-  // Lookup by ID
-  const handleLookup = async () => {
-    if (!lookupId.trim()) return
-    setLookupLoading(true)
-    setLookupError('')
-    setLookedUp(null)
-    try {
-      const res = await fetch(`/orders/${lookupId.trim()}`)
-      const data = await res.json()
-      if (!res.ok) { setLookupError(data.error || 'Order not found'); return }
-      setLookedUp(data)
-    } catch {
-      setLookupError('Network error.')
-    } finally {
-      setLookupLoading(false)
-    }
-  }
+  // ── Summary counts ──
+  const activeCount  = orders.filter(o => !TERMINAL.has(o.deliveryStatus)).length
+  const doneCount    = orders.filter(o => TERMINAL.has(o.deliveryStatus)).length
 
   return (
     <div className="container">
-      {/* Header */}
-      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+
+      {/* ── Page header ── */}
+      <div className="page-header dash-header">
         <div>
-          <h2>My <span className="gradient-text">Orders</span></h2>
-          <p>Manage, update, or cancel your orders.</p>
+          <h2>Orders <span className="gradient-text">Dashboard</span></h2>
+          <p>Filter by restaurant, update statuses, or remove orders.</p>
         </div>
         <button className="btn btn-outline" style={{ width: 'auto', padding: '10px 24px' }} onClick={fetchOrders}>
           🔄 Refresh
         </button>
       </div>
 
-      {/* Lookup single order */}
-      <div className="glass-card" style={{ marginBottom: '32px' }}>
-        <h3 style={{ marginBottom: '16px', fontSize: '1rem', color: 'var(--text-secondary)' }}>
-          🔍 Look Up Order by ID
-        </h3>
-        <div style={{ display: 'flex', gap: '12px' }}>
-          <input
-            className="glass-input"
-            placeholder="e.g. ORD1"
-            value={lookupId}
-            onChange={e => setLookupId(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && handleLookup()}
-            style={{ flex: 1 }}
-          />
-          <button
-            className="btn btn-primary"
-            style={{ width: 'auto', padding: '12px 28px', flexShrink: 0 }}
-            onClick={handleLookup}
-            disabled={lookupLoading}
-          >
-            {lookupLoading ? 'Searching…' : 'Find'}
-          </button>
-        </div>
-        {lookupError && <div className="error-msg" style={{ marginTop: '12px' }}>{lookupError}</div>}
-        {lookedUp && (
-          <div className="lookup-result">
-            <div className="order-detail-row"><span>Order ID</span><span style={{ color: 'var(--brand-primary)', fontWeight: 700 }}>{lookedUp.orderId}</span></div>
-            <div className="order-detail-row"><span>Customer</span><span>{lookedUp.customerName}</span></div>
-            <div className="order-detail-row"><span>Restaurant</span><span>{lookedUp.restaurantName}</span></div>
-            <div className="order-detail-row"><span>Items</span><span>{lookedUp.foodItems.join(', ')}</span></div>
-            <div className="order-detail-row"><span>Total</span><span className="price-text">${lookedUp.totalAmount.toFixed(2)}</span></div>
-            <div className="order-detail-row">
-              <span>Status</span>
-              <span className={`status-chip ${STATUS_META[lookedUp.deliveryStatus]?.className}`}>
-                {STATUS_META[lookedUp.deliveryStatus]?.emoji} {lookedUp.deliveryStatus}
-              </span>
-            </div>
+      {/* ── Stats bar ── */}
+      {!loading && !error && (
+        <div className="stats-bar">
+          <div className="stat-pill">
+            <span className="stat-label">Total</span>
+            <span className="stat-value">{orders.length}</span>
           </div>
-        )}
-      </div>
+          <div className="stat-pill active">
+            <span className="stat-label">Active</span>
+            <span className="stat-value">{activeCount}</span>
+          </div>
+          <div className="stat-pill done">
+            <span className="stat-label">Done</span>
+            <span className="stat-value">{doneCount}</span>
+          </div>
+        </div>
+      )}
 
-      {/* All orders */}
+      {/* ── Restaurant filter tabs ── */}
+      {!loading && restaurants.length > 0 && (
+        <div className="restaurant-tabs">
+          {/* All tab */}
+          <button
+            className={`rest-tab ${activeRestaurant === 'All' ? 'active' : ''}`}
+            onClick={() => setActiveRestaurant('All')}
+          >
+            <span className="rest-tab-emoji">🍽️</span>
+            <span className="rest-tab-name">All</span>
+            <span className="rest-tab-count">{orders.length}</span>
+          </button>
+
+          {/* Per-restaurant tabs */}
+          {restaurants.map(name => (
+            <button
+              key={name}
+              className={`rest-tab ${activeRestaurant === name ? 'active' : ''}`}
+              onClick={() => setActiveRestaurant(name)}
+            >
+              <span className="rest-tab-emoji">{RESTAURANT_EMOJI[name] || '🍴'}</span>
+              <span className="rest-tab-name">{name}</span>
+              <span className="rest-tab-count">{restaurantStats[name]?.total || 0}</span>
+              {restaurantStats[name]?.active > 0 && (
+                <span className="rest-tab-active-dot" title={`${restaurantStats[name].active} active`} />
+              )}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* ── Loading / error / empty ── */}
       {loading && (
         <div style={{ textAlign: 'center', padding: '60px', color: 'var(--text-secondary)' }}>
           <div className="spinner" />
@@ -159,25 +198,42 @@ function OrdersPage() {
         </div>
       )}
 
-      {!loading && !error && orders.length === 0 && (
+      {!loading && !error && filtered.length === 0 && (
         <div className="glass-card" style={{ textAlign: 'center', padding: '60px', color: 'var(--text-secondary)' }}>
-          <div style={{ fontSize: '3rem', marginBottom: '16px' }}>🛒</div>
-          <p>No orders yet. Go place one!</p>
+          <div style={{ fontSize: '3rem', marginBottom: '16px' }}>
+            {activeRestaurant === 'All' ? '🛒' : RESTAURANT_EMOJI[activeRestaurant] || '🍴'}
+          </div>
+          <p>
+            {activeRestaurant === 'All'
+              ? 'No orders yet. Go place one!'
+              : `No orders from ${activeRestaurant} yet.`}
+          </p>
         </div>
       )}
 
+      {/* ── Orders grid ── */}
       <div className="orders-grid">
-        {orders.map(order => {
-          const meta = STATUS_META[order.deliveryStatus] || {}
+        {filtered.map(order => {
+          const meta      = STATUS_META[order.deliveryStatus] || {}
+          const isTerminal = TERMINAL.has(order.deliveryStatus)
           const isUpdating = updatingId === order.orderId
           const isDeleting = deletingId === order.orderId
-          const isOpen = dropdownOpen === order.orderId
+          const isOpen     = dropdownOpen === order.orderId
+          const pills      = collapsePills(order.foodItems)
 
           return (
-            <div className="glass-card order-card" key={order._id}>
+            <div
+              className={`glass-card order-card ${isTerminal ? 'order-card--faded' : ''}`}
+              key={order._id}
+            >
               {/* Card header */}
               <div className="order-card-header">
-                <span className="order-id-badge">{order.orderId}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <span className="order-id-badge">{order.orderId}</span>
+                  <span className="order-rest-label">
+                    {RESTAURANT_EMOJI[order.restaurantName] || '🍴'} {order.restaurantName}
+                  </span>
+                </div>
                 <span className={`status-chip ${meta.className}`}>
                   {meta.emoji} {order.deliveryStatus}
                 </span>
@@ -185,52 +241,71 @@ function OrdersPage() {
 
               {/* Details */}
               <div className="order-info">
-                <div className="order-detail-row"><span>Customer</span><span>{order.customerName}</span></div>
-                <div className="order-detail-row"><span>Restaurant</span><span>{order.restaurantName}</span></div>
-                <div className="order-detail-row"><span>Total</span><span className="price-text">${order.totalAmount.toFixed(2)}</span></div>
+                <div className="order-detail-row">
+                  <span>Customer</span><span>{order.customerName}</span>
+                </div>
+                <div className="order-detail-row">
+                  <span>Total</span>
+                  <span className={isTerminal ? '' : 'price-text'}>${order.totalAmount.toFixed(2)}</span>
+                </div>
               </div>
 
-              {/* Food items */}
+              {/* Food pills — collapsed */}
               <div className="food-items-list">
-                {order.foodItems.map(item => (
-                  <span key={item} className="food-pill">{item}</span>
+                {pills.map(({ name, qty }) => (
+                  <span key={name} className="food-pill">
+                    {name}{qty > 1 && <strong> ×{qty}</strong>}
+                  </span>
                 ))}
               </div>
 
-              {/* Actions */}
-              <div className="order-actions">
-                {/* Status dropdown */}
-                <div className="dropdown-wrapper">
+              {/* Actions — hidden for terminal orders */}
+              {isTerminal ? (
+                <div className="order-terminal-bar">
+                  <span>{order.deliveryStatus === 'Delivered' ? '✅ Order delivered' : '❌ Order cancelled'}</span>
                   <button
-                    className="btn btn-outline-sm"
-                    onClick={() => setDropdownOpen(isOpen ? null : order.orderId)}
+                    className="btn btn-danger-sm"
+                    onClick={() => handleDelete(order.orderId)}
+                    disabled={isDeleting}
+                  >
+                    {isDeleting ? 'Removing…' : '🗑️ Remove'}
+                  </button>
+                </div>
+              ) : (
+                <div className="order-actions">
+                  {/* Status dropdown */}
+                  <div className="dropdown-wrapper">
+                    <button
+                      className="btn btn-outline-sm"
+                      onClick={(e) => { e.stopPropagation(); setDropdownOpen(isOpen ? null : order.orderId) }}
+                      disabled={isUpdating || isDeleting}
+                    >
+                      {isUpdating ? 'Updating…' : '✏️ Update Status'}
+                    </button>
+                    {isOpen && (
+                      <div className="dropdown-menu" onClick={e => e.stopPropagation()}>
+                        {STATUS_OPTIONS.map(s => (
+                          <button
+                            key={s}
+                            className={`dropdown-item ${order.deliveryStatus === s ? 'current' : ''}`}
+                            onClick={() => handleUpdateStatus(order.orderId, s)}
+                          >
+                            {STATUS_META[s]?.emoji} {s}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <button
+                    className="btn btn-danger-sm"
+                    onClick={() => handleDelete(order.orderId)}
                     disabled={isUpdating || isDeleting}
                   >
-                    {isUpdating ? 'Updating…' : '✏️ Update Status'}
+                    {isDeleting ? 'Deleting…' : '🗑️ Delete'}
                   </button>
-                  {isOpen && (
-                    <div className="dropdown-menu">
-                      {STATUS_OPTIONS.map(s => (
-                        <button
-                          key={s}
-                          className={`dropdown-item ${order.deliveryStatus === s ? 'current' : ''}`}
-                          onClick={() => handleUpdateStatus(order.orderId, s)}
-                        >
-                          {STATUS_META[s]?.emoji} {s}
-                        </button>
-                      ))}
-                    </div>
-                  )}
                 </div>
-
-                <button
-                  className="btn btn-danger-sm"
-                  onClick={() => handleDelete(order.orderId)}
-                  disabled={isUpdating || isDeleting}
-                >
-                  {isDeleting ? 'Deleting…' : '🗑️ Delete'}
-                </button>
-              </div>
+              )}
             </div>
           )
         })}

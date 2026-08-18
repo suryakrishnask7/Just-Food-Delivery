@@ -1,11 +1,9 @@
 const express = require('express');
 const bodyParser = require('body-parser');
-const fs = require('fs');
-const soap = require('soap');
+const cors = require('cors');
 const path = require('path');
 const mongoose = require('mongoose');
 const restRoutes = require('./rest/routes');
-const soapService = require('./soap/soapService');
 
 const app = express();
 
@@ -15,10 +13,12 @@ const PORT = process.env.PORT || 8000;
 // MongoDB connection string — set via environment variable or default to local
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/food-delivery';
 
+// Allow React dev server (port 5173) and any other origin in development
+app.use(cors());
 app.use(bodyParser.json());
 
-// Serve the static test UI
-app.use(express.static(path.join(__dirname, 'public')));
+// Serve built React frontend in production (client/ is a sibling of server/)
+app.use(express.static(path.join(__dirname, '..', 'client', 'dist')));
 
 // Attach REST Routes
 app.use('/orders', restRoutes);
@@ -40,14 +40,6 @@ mongoose.connect(MONGODB_URI)
 
     const server = app.listen(PORT, () => {
       console.log(`Server is running on port ${PORT}`);
-
-      // Attach SOAP Service to /wsdl endpoint
-      const wsdlPath = path.join(__dirname, 'soap', 'service.wsdl');
-      const wsdlXML = fs.readFileSync(wsdlPath, 'utf8');
-
-      soap.listen(server, '/wsdl', soapService, wsdlXML, function () {
-        console.log('SOAP service listening on /wsdl');
-      });
     });
   })
   .catch((err) => {

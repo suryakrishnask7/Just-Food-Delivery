@@ -1,2 +1,14 @@
+# Dependencies
 node_modules/
+
+# Build output
+client/dist/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Misc
 test_server.js
+.DS_Store

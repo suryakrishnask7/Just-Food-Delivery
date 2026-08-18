@@ -19,19 +19,17 @@ function collapsePills(items) {
   return Object.entries(counts).map(([name, qty]) => ({ name, qty }))
 }
 
-// Restaurant emojis map (synced with PlaceOrderPage)
-const RESTAURANT_EMOJI = {
-  'Burger Joint':     '🍔',
-  'Pizza Haven':      '🍕',
-  'Sushi World':      '🍣',
-  'Biryani Palace':   '🍛',
-}
-
-function OrdersPage() {
+function OrdersPage({ restaurants = [] }) {
   const [orders, setOrders]           = useState([])
   const [loading, setLoading]         = useState(true)
   const [error, setError]             = useState('')
   const [activeRestaurant, setActiveRestaurant] = useState('All')
+
+  const restEmojiMap = useMemo(() => {
+    const map = {}
+    restaurants.forEach(r => { map[r.name] = r.emoji })
+    return map
+  }, [restaurants])
 
   // Per-card UI state
   const [updatingId, setUpdatingId]   = useState(null)
@@ -63,8 +61,8 @@ function OrdersPage() {
     return () => window.removeEventListener('click', close)
   }, [])
 
-  // ── Derived: unique restaurants found in orders ──
-  const restaurants = useMemo(() => {
+  // ── Derived: unique restaurant names found in orders ──
+  const restaurantNames = useMemo(() => {
     const names = [...new Set(orders.map(o => o.restaurantName))]
     return names.sort()
   }, [orders])
@@ -154,7 +152,7 @@ function OrdersPage() {
       )}
 
       {/* ── Restaurant filter tabs ── */}
-      {!loading && restaurants.length > 0 && (
+      {!loading && restaurantNames.length > 0 && (
         <div className="restaurant-tabs">
           {/* All tab */}
           <button
@@ -167,13 +165,13 @@ function OrdersPage() {
           </button>
 
           {/* Per-restaurant tabs */}
-          {restaurants.map(name => (
+          {restaurantNames.map(name => (
             <button
               key={name}
               className={`rest-tab ${activeRestaurant === name ? 'active' : ''}`}
               onClick={() => setActiveRestaurant(name)}
             >
-              <span className="rest-tab-emoji">{RESTAURANT_EMOJI[name] || '🍴'}</span>
+              <span className="rest-tab-emoji">{restEmojiMap[name] || '🍴'}</span>
               <span className="rest-tab-name">{name}</span>
               <span className="rest-tab-count">{restaurantStats[name]?.total || 0}</span>
               {restaurantStats[name]?.active > 0 && (
@@ -201,7 +199,7 @@ function OrdersPage() {
       {!loading && !error && filtered.length === 0 && (
         <div className="glass-card" style={{ textAlign: 'center', padding: '60px', color: 'var(--text-secondary)' }}>
           <div style={{ fontSize: '3rem', marginBottom: '16px' }}>
-            {activeRestaurant === 'All' ? '🛒' : RESTAURANT_EMOJI[activeRestaurant] || '🍴'}
+            {activeRestaurant === 'All' ? '🛒' : restEmojiMap[activeRestaurant] || '🍴'}
           </div>
           <p>
             {activeRestaurant === 'All'
@@ -231,7 +229,7 @@ function OrdersPage() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                   <span className="order-id-badge">{order.orderId}</span>
                   <span className="order-rest-label">
-                    {RESTAURANT_EMOJI[order.restaurantName] || '🍴'} {order.restaurantName}
+                    {restEmojiMap[order.restaurantName] || '🍴'} {order.restaurantName}
                   </span>
                 </div>
                 <span className={`status-chip ${meta.className}`}>

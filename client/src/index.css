@@ -783,6 +783,49 @@ body.light-mode .response-body {
 .btn-danger-sm:hover { background: rgba(239,68,68,0.25); }
 .btn-danger-sm:disabled { opacity: 0.5; cursor: not-allowed; }
 
+.btn-danger-xs {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #f87171;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+.btn-danger-xs:hover {
+  background: rgba(239, 68, 68, 0.25);
+  color: #ef4444;
+}
+
+.btn-outline-xs {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  background: rgba(99, 102, 241, 0.12);
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  color: #a5b4fc;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+.btn-outline-xs:hover {
+  background: rgba(99, 102, 241, 0.25);
+  border-color: var(--brand-primary);
+  color: #ffffff;
+}
+
 /* ── Error Message ── */
 .error-msg {
   background: rgba(239,68,68,0.1);

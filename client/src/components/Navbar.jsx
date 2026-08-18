@@ -17,6 +17,12 @@ function Navbar({ page, setPage, theme, toggleTheme }) {
         >
           Orders
         </button>
+        <button
+          className={`nav-link ${page === 'manage-restaurants' ? 'active' : ''}`}
+          onClick={() => setPage('manage-restaurants')}
+        >
+          Restaurants
+        </button>
         <button className="theme-toggle" onClick={toggleTheme}>
           {theme === 'dark' ? '☀️ Light Mode' : '🌙 Dark Mode'}
         </button>

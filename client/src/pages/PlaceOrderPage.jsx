@@ -1,65 +1,14 @@
 import { useState } from 'react'
 
-const RESTAURANTS = [
-  {
-    id: 'burger-joint',
-    name: 'Burger Joint',
-    emoji: '🍔',
-    tag: 'American · Fast Food',
-    menu: [
-      { name: 'Classic Cheeseburger', price: 8.99 },
-      { name: 'Double Bacon Burger',  price: 12.99 },
-      { name: 'Crispy Chicken Burger', price: 10.49 },
-      { name: 'Loaded Fries',          price: 4.99 },
-      { name: 'Onion Rings',           price: 3.49 },
-      { name: 'Milkshake',             price: 5.99 },
-    ],
-  },
-  {
-    id: 'pizza-haven',
-    name: 'Pizza Haven',
-    emoji: '🍕',
-    tag: 'Italian · Pizza',
-    menu: [
-      { name: 'Margherita Pizza',   price: 14.99 },
-      { name: 'Pepperoni Pizza',    price: 16.99 },
-      { name: 'BBQ Chicken Pizza',  price: 17.49 },
-      { name: 'Garlic Bread',       price: 5.99 },
-      { name: 'Bruschetta',         price: 6.49 },
-      { name: 'Tiramisu',           price: 7.99 },
-    ],
-  },
-  {
-    id: 'sushi-world',
-    name: 'Sushi World',
-    emoji: '🍣',
-    tag: 'Japanese · Sushi',
-    menu: [
-      { name: 'Spicy Tuna Roll',   price: 9.99 },
-      { name: 'Salmon Nigiri',     price: 11.99 },
-      { name: 'Dragon Roll',       price: 14.99 },
-      { name: 'Edamame',           price: 4.99 },
-      { name: 'Miso Soup',         price: 3.49 },
-      { name: 'Green Tea Ice Cream', price: 5.99 },
-    ],
-  },
-  {
-    id: 'biryani-palace',
-    name: 'Biryani Palace',
-    emoji: '🍛',
-    tag: 'Indian · Rice Dishes',
-    menu: [
-      { name: 'Chicken Biryani',   price: 13.99 },
-      { name: 'Mutton Biryani',    price: 16.99 },
-      { name: 'Veg Biryani',       price: 11.49 },
-      { name: 'Butter Chicken',    price: 14.49 },
-      { name: 'Naan',              price: 2.99 },
-      { name: 'Mango Lassi',       price: 4.49 },
-    ],
-  },
-]
+function formatFoodItemsSummary(items = []) {
+  const counts = {}
+  items.forEach(i => { counts[i] = (counts[i] || 0) + 1 })
+  return Object.entries(counts)
+    .map(([name, qty]) => (qty > 1 ? `${name} ×${qty}` : name))
+    .join(', ')
+}
 
-function PlaceOrderPage({ setPage }) {
+function PlaceOrderPage({ setPage, restaurants = [] }) {
   const [step, setStep] = useState(1)           // 1 = pick restaurant, 2 = pick items, 3 = confirm
   const [restaurant, setRestaurant] = useState(null)
   const [cart, setCart] = useState({})           // { itemName: qty } — qty >= 1
@@ -141,7 +90,7 @@ function PlaceOrderPage({ setPage }) {
           </p>
           <div className="order-detail-row"><span>Customer</span><span>{success.customerName}</span></div>
           <div className="order-detail-row"><span>Restaurant</span><span>{success.restaurantName}</span></div>
-          <div className="order-detail-row"><span>Items</span><span>{success.foodItems.join(', ')}</span></div>
+          <div className="order-detail-row"><span>Items</span><span>{formatFoodItemsSummary(success.foodItems)}</span></div>
           <div className="order-detail-row"><span>Total</span><span className="price-text">${success.totalAmount.toFixed(2)}</span></div>
           <div className="order-detail-row"><span>Status</span><span className="status-chip placed">Placed</span></div>
           <div style={{ display: 'flex', gap: '12px', marginTop: '32px' }}>
@@ -177,7 +126,7 @@ function PlaceOrderPage({ setPage }) {
             <p>Pick where you want to order from.</p>
           </div>
           <div className="restaurant-grid">
-            {RESTAURANTS.map(r => (
+            {restaurants.map(r => (
               <div
                 key={r.id}
                 className={`glass-card restaurant-card ${restaurant?.id === r.id ? 'selected' : ''}`}

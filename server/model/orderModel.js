@@ -1,39 +1,72 @@
-const mongoose = require('mongoose');
+const Database = require('better-sqlite3');
+const path = require('path');
 
-// Define the Order schema
-const orderSchema = new mongoose.Schema({
-  orderId: { type: String, required: true, unique: true },
-  customerName: { type: String, required: true },
-  restaurantName: { type: String, required: true },
-  foodItems: { type: [String], default: [] },
-  totalAmount: { type: Number, required: true },
-  deliveryStatus: {
-    type: String,
-    enum: ['Placed', 'Preparing', 'Out for Delivery', 'Delivered', 'Cancelled'],
-    default: 'Placed'
-  }
-}, { timestamps: true });
+// Initialize SQLite database
+const dbPath = process.env.SQLITE_DB_PATH || path.join(__dirname, '..', 'database.db');
+const db = new Database(dbPath);
 
-const Order = mongoose.model('Order', orderSchema);
+db.pragma('journal_mode = WAL');
 
-// Counter collection to auto-generate ORD1, ORD2, etc.
-const counterSchema = new mongoose.Schema({
-  _id: { type: String, required: true },
-  seq: { type: Number, default: 0 }
-});
-const Counter = mongoose.model('Counter', counterSchema);
+// Create tables if they do not exist
+db.exec(`
+  CREATE TABLE IF NOT EXISTS orders (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    orderId TEXT UNIQUE NOT NULL,
+    customerName TEXT NOT NULL,
+    restaurantName TEXT NOT NULL,
+    foodItems TEXT NOT NULL,
+    totalAmount REAL NOT NULL,
+    deliveryStatus TEXT NOT NULL DEFAULT 'Placed',
+    createdAt TEXT NOT NULL,
+    updatedAt TEXT NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS counters (
+    id TEXT PRIMARY KEY,
+    seq INTEGER DEFAULT 0
+  );
+`);
 
 // Allowed statuses for validation
 const allowedStatuses = ['Placed', 'Preparing', 'Out for Delivery', 'Delivered', 'Cancelled'];
 
-// Generate the next order ID (ORD1, ORD2, ...)
-async function generateId() {
-  const counter = await Counter.findByIdAndUpdate(
-    'orderId',
-    { $inc: { seq: 1 } },
-    { new: true, upsert: true }
-  );
-  return `ORD${counter.seq}`;
+// Transaction to generate the next order ID (ORD1, ORD2, ...)
+const incrementCounter = db.transaction(() => {
+  const getStmt = db.prepare('SELECT seq FROM counters WHERE id = ?');
+  const row = getStmt.get('orderId');
+  let nextSeq = 1;
+
+  if (!row) {
+    db.prepare('INSERT INTO counters (id, seq) VALUES (?, ?)').run('orderId', 1);
+  } else {
+    nextSeq = row.seq + 1;
+    db.prepare('UPDATE counters SET seq = ? WHERE id = ?').run(nextSeq, 'orderId');
+  }
+
+  return `ORD${nextSeq}`;
+});
+
+// Helper to format SQLite row object to match expected API schema
+function formatOrderRecord(row) {
+  if (!row) return null;
+  let parsedFoodItems = [];
+  try {
+    parsedFoodItems = JSON.parse(row.foodItems);
+  } catch (e) {
+    parsedFoodItems = [];
+  }
+
+  return {
+    _id: row.orderId,
+    orderId: row.orderId,
+    customerName: row.customerName,
+    restaurantName: row.restaurantName,
+    foodItems: parsedFoodItems,
+    totalAmount: row.totalAmount,
+    deliveryStatus: row.deliveryStatus,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt
+  };
 }
 
 // Create a new order
@@ -54,28 +87,33 @@ async function createOrder(data) {
     throw error;
   }
 
-  const orderId = await generateId();
-  const order = new Order({
-    orderId,
-    customerName,
-    restaurantName,
-    foodItems: foodItems || [],
-    totalAmount,
-    deliveryStatus: 'Placed'
-  });
+  const orderId = incrementCounter();
+  const now = new Date().toISOString();
+  const foodItemsJson = JSON.stringify(foodItems || []);
+  const deliveryStatus = 'Placed';
 
-  await order.save();
-  return order;
+  const stmt = db.prepare(`
+    INSERT INTO orders (orderId, customerName, restaurantName, foodItems, totalAmount, deliveryStatus, createdAt, updatedAt)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+
+  stmt.run(orderId, customerName, restaurantName, foodItemsJson, totalAmount, deliveryStatus, now, now);
+
+  return getOrderById(orderId);
 }
 
 // Get all orders
 async function getAllOrders() {
-  return await Order.find({});
+  const stmt = db.prepare('SELECT * FROM orders ORDER BY id DESC');
+  const rows = stmt.all();
+  return rows.map(formatOrderRecord);
 }
 
 // Get a single order by its ID
 async function getOrderById(id) {
-  return await Order.findOne({ orderId: id });
+  const stmt = db.prepare('SELECT * FROM orders WHERE orderId = ?');
+  const row = stmt.get(id);
+  return formatOrderRecord(row);
 }
 
 // Update the delivery status of an order
@@ -86,18 +124,25 @@ async function updateOrderStatus(id, status) {
     throw error;
   }
 
-  const order = await Order.findOneAndUpdate(
-    { orderId: id },
-    { deliveryStatus: status },
-    { new: true }
-  );
-  return order; // null if not found
+  const now = new Date().toISOString();
+  const stmt = db.prepare('UPDATE orders SET deliveryStatus = ?, updatedAt = ? WHERE orderId = ?');
+  const result = stmt.run(status, now, id);
+
+  if (result.changes === 0) {
+    return null;
+  }
+
+  return getOrderById(id);
 }
 
 // Cancel an order (Completely remove from DB)
 async function cancelOrder(id) {
-  const order = await Order.findOneAndDelete({ orderId: id });
-  return order; // returns the deleted document or null if not found
+  const existing = await getOrderById(id);
+  if (!existing) return null;
+
+  const stmt = db.prepare('DELETE FROM orders WHERE orderId = ?');
+  stmt.run(id);
+  return existing;
 }
 
 module.exports = {
@@ -107,3 +152,4 @@ module.exports = {
   updateOrderStatus,
   cancelOrder
 };
+

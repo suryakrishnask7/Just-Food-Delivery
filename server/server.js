@@ -2,16 +2,12 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const path = require('path');
-const mongoose = require('mongoose');
 const restRoutes = require('./rest/routes');
 
 const app = express();
 
 // Render requires binding to process.env.PORT
 const PORT = process.env.PORT || 8000;
-
-// MongoDB connection string — set via environment variable or default to local
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/food-delivery';
 
 // Allow React dev server (port 5173) and any other origin in development
 app.use(cors());
@@ -33,16 +29,9 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Connect to MongoDB first, then start the server
-mongoose.connect(MONGODB_URI)
-  .then(() => {
-    console.log('Connected to MongoDB successfully');
+// Start the server directly with SQLite
+app.listen(PORT, () => {
+  console.log('Connected to SQLite database successfully');
+  console.log(`Server is running on port ${PORT}`);
+});
 
-    const server = app.listen(PORT, () => {
-      console.log(`Server is running on port ${PORT}`);
-    });
-  })
-  .catch((err) => {
-    console.error('Failed to connect to MongoDB:', err.message);
-    process.exit(1);
-  });

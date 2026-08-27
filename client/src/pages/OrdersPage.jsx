@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
+import { API_BASE_URL } from '../config'
 
 const STATUS_OPTIONS = ['Placed', 'Preparing', 'Out for Delivery', 'Delivered', 'Cancelled']
 
@@ -41,7 +42,7 @@ function OrdersPage({ restaurants = [] }) {
     setLoading(true)
     setError('')
     try {
-      const res  = await fetch('/orders')
+      const res  = await fetch(`${API_BASE_URL}/orders`)
       const data = await res.json()
       if (!res.ok) { setError(data.error || 'Failed to load orders'); return }
       setOrders(data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)))
@@ -89,7 +90,7 @@ function OrdersPage({ restaurants = [] }) {
     setUpdatingId(orderId)
     setDropdownOpen(null)
     try {
-      const res = await fetch(`/orders/${orderId}/status`, {
+      const res = await fetch(`${API_BASE_URL}/orders/${orderId}/status`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus }),
@@ -108,7 +109,7 @@ function OrdersPage({ restaurants = [] }) {
     if (!window.confirm(`Delete order ${orderId}?`)) return
     setDeletingId(orderId)
     try {
-      const res = await fetch(`/orders/${orderId}`, { method: 'DELETE' })
+      const res = await fetch(`${API_BASE_URL}/orders/${orderId}`, { method: 'DELETE' })
       if (res.ok) setOrders(prev => prev.filter(o => o.orderId !== orderId))
     } finally {
       setDeletingId(null)

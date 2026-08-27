@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { API_BASE_URL } from '../config'
 
 function formatFoodItemsSummary(items = []) {
   const counts = {}
@@ -57,7 +58,7 @@ function PlaceOrderPage({ setPage, restaurants = [] }) {
     setError('')
     setSubmitting(true)
     try {
-      const res = await fetch('/orders', {
+      const res = await fetch(`${API_BASE_URL}/orders`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
